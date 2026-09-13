@@ -379,11 +379,15 @@ export class Game {
       this.last = performance.now();
     }, { signal });
     bindGameKeyboard(window, {
+      captureControl: event => this.phase === 'playing' && this.groundLootNames === 'ctrl'
+        && !this.appearanceEditor && !this.panels.activePanel
+        && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement)
+        && !(event.target instanceof HTMLSelectElement) && !(event.target instanceof HTMLElement && event.target.isContentEditable),
       revealLoot: held => { this.revealLootHeld = this.phase === 'playing' && held; },
       clear: () => this.clearInput(),
       release: code => this.input.keyUp(code),
-      press: event => {
-        if(this.appearanceEditor || event.defaultPrevented)return;
+      press: (event, ownsControl) => {
+        if(this.appearanceEditor || event.defaultPrevented && !ownsControl)return;
         if (this.savingAction) { event.preventDefault(); return; }
         if (event.isTrusted && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLTextAreaElement) && !(event.target instanceof HTMLSelectElement) && !(event.target instanceof HTMLElement && event.target.isContentEditable)) { this.usingGamepad = false; this.touch.setActive(false); }
         if (event.code === 'Escape') {

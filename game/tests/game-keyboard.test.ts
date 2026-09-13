@@ -33,11 +33,12 @@ test('Ctrl reveal tracks either control key without consuming browser shortcuts 
   abort.abort(); key('keydown', 'ControlRight', true); assert.equal(held, false);
 });
 
-function setup() {
+function setup(captureControl = () => false) {
   const target = new EventTarget(), abort = new AbortController(), input = new GameInput();
   const sim = new Simulation({ blocked: () => false, move: (x, y, dx, dy) => ({ x: x + dx, y: y + dy }) }, { spawn: false });
   const presses: string[] = [];
   bindGameKeyboard(target, {
+    captureControl,
     press: event => { if (!event.repeat) { presses.push(event.code); input.keyDown(event.code); } },
     release: code => input.keyUp(code), clear: () => { input.clear(); sim.clearInput(); },
   }, abort.signal);
@@ -50,6 +51,38 @@ function setup() {
   const advance = (frames: number) => { for (let i = 0; i < frames; i++) sim.update(FIXED_STEP, state()); };
   return { target, abort, input, sim, presses, key, state, advance };
 }
+
+test('owned Ctrl suppresses browser commands while movement and key releases keep working', () => {
+  const { key, state, presses } = setup(() => true);
+  key('keydown', 'KeyW');
+  assert.equal(key('keydown', 'ControlLeft', { ctrlKey: true }).defaultPrevented, true);
+  assert.equal(state().moveY, -1, 'Ctrl must not cancel existing movement');
+  key('keyup', 'KeyW', { ctrlKey: true });
+  assert.equal(key('keydown', 'KeyS', { ctrlKey: true }).defaultPrevented, true);
+  assert.equal(state().moveY, 1, 'Ctrl+S still moves down');
+  for (const code of ['KeyR', 'KeyF', 'KeyP', 'Equal']) {
+    assert.equal(key('keydown', code, { ctrlKey: true }).defaultPrevented, true);
+    key('keyup', code, { ctrlKey: true });
+  }
+  key('keyup', 'ControlLeft'); assert.equal(state().moveY, 1);
+  key('keyup', 'KeyS'); assert.equal(state().moveY, 0);
+  assert.ok(presses.includes('KeyS')); assert.ok(!presses.includes('ControlLeft'));
+});
+
+test('Ctrl ownership is live and leaves unowned, AltGr, Command and composing shortcuts native', () => {
+  let capture = true;
+  const { key, state, presses } = setup(() => capture);
+  key('keydown', 'KeyS', { ctrlKey: true }); assert.equal(state().moveY, 1);
+  capture = false; // Setting disabled, menu open, or an editable control owns focus.
+  assert.equal(key('keydown', 'KeyS', { ctrlKey: true }).defaultPrevented, false);
+  assert.equal(state().moveY, 0);
+  capture = true;
+  const count = presses.length;
+  for (const extra of [{ altKey: true }, { metaKey: true }, { isComposing: true }]) {
+    assert.equal(key('keydown', 'KeyS', { ctrlKey: true, ...extra }).defaultPrevented, false);
+  }
+  assert.equal(presses.length, count);
+});
 
 test('system shortcut during movement clears missing releases and simulation velocity without blocking the browser', () => {
   for (const [code, flag] of [['MetaLeft', 'metaKey'], ['ControlLeft', 'ctrlKey'], ['AltLeft', 'altKey']]) {
