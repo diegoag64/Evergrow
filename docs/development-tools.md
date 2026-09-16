@@ -1,5 +1,7 @@
 # Local development tools
 
+Skills & combat → **Jev arena** (`/tools/jev.html`) is a disposable level-10 real-time combat bot. Jev chooses targets/tactics while a normal-input motor routes, maintains melee/ranged spacing and evades visible threats. Sword, bow and wand loadouts include direct-north archer and wall-routing encounters. There is no request budget; usage totals and bounded JSON history remain visible. An offline control demo is separately labeled. No playable saves or production entrypoints are connected. See [setup, behavior and evidence](jev-arena.md).
+
 Local Unique studies: `/character.html?uniques`, `/loot.html?uniques` and `/chronicle.html?uniques` stage the six designs and collection states. The skill playground has a matching Unique selector for each supported skill. All use runtime generators/renderers/combat with disposable state; see [Unique items](unique-items.md).
 
 Open **http://127.0.0.1:5173/tools/** (`/tools` also resolves) while `npm run dev` is running. This is the canonical entry point for development reviews. It groups existing reviews into Equipment, Characters, Skills & Combat, World, Interface and Data & Audits, with historical concepts in Archive. Search finds tools by purpose. A workspace mounts only one review at a time; moving between tabs unloads its renderer and memory state. Standalone reviews have Tools home / Open in workspace navigation.
